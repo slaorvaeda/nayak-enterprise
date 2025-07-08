@@ -20,7 +20,8 @@ const protect = async (req, res, next) => {
     }
 
     // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const secret = process.env.JWT_SECRET || 'nayak-enterprises-super-secret-jwt-key-2024';
+    const decoded = jwt.verify(token, secret);
 
     // Get user from token
     const user = await User.findById(decoded.id).select('-password');
@@ -84,7 +85,8 @@ const optionalAuth = async (req, res, next) => {
     }
 
     if (token) {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const secret = process.env.JWT_SECRET || 'nayak-enterprises-super-secret-jwt-key-2024';
+      const decoded = jwt.verify(token, secret);
       const user = await User.findById(decoded.id).select('-password');
 
       if (user && user.isActive) {
@@ -101,7 +103,8 @@ const optionalAuth = async (req, res, next) => {
 
 // Generate JWT token
 const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
+  const secret = process.env.JWT_SECRET || 'nayak-enterprises-super-secret-jwt-key-2024';
+  return jwt.sign({ id }, secret, {
     expiresIn: process.env.JWT_EXPIRE || '7d'
   });
 };

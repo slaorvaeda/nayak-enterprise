@@ -3,6 +3,7 @@
 *{
   border-color: var(--border);
   scroll-behavior: smooth;
+  transition: all 0.5s cubic-bezier(0.455, 0.03, 0.515, 0.955);
 }
 
 body {
@@ -146,6 +147,11 @@ body {
 }
 .scrollbar-hide::-webkit-scrollbar {
   display: none; /* Chrome, Safari, Opera */
+}
+
+/* Smooth transitions for interactive elements */
+button, a, .card, .modal, .menu, .dropdown, .sidebar, .overlay, input, select, textarea {
+  transition: all 0.2s cubic-bezier(0.4,0,0.2,1);
 }
 
 

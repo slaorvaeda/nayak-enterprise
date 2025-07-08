@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const Order = require('../models/Order');
-const Cart = require('../models/Cart');
-const Product = require('../models/Product');
-const User = require('../models/User');
+const Order = require('../models/Order.model');
+const Cart = require('../models/Cart.model');
+const Product = require('../models/Product.model');
+const User = require('../models/User.model');
 const { protect, verified } = require('../middleware/auth');
 const { orderValidation } = require('../middleware/validation');
 

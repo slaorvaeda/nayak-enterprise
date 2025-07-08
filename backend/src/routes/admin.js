@@ -4,11 +4,15 @@ const User = require('../models/User.model');
 const Product = require('../models/Product.model');
 const Order = require('../models/Order.model');
 const { protect, admin } = require('../middleware/auth');
+const { adminAuth, adminLogin } = require('../controllers/authContoller');
+
+
+router.post('/login', adminLogin);
 
 // @desc    Get admin dashboard overview
 // @route   GET /api/admin/dashboard
 // @access  Private/Admin
-router.get('/dashboard', protect, admin, async (req, res) => {
+router.get('/dashboard', protect, adminAuth, async (req, res) => {
   try {
     // Get total counts
     const totalUsers = await User.countDocuments();

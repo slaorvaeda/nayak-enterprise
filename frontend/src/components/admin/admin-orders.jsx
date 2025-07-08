@@ -14,40 +14,12 @@ import { Separator } from "@/components/ui/separator"
 import { Eye, Edit, Package, Truck, CheckCircle, XCircle, Clock, FileText, Download, Search } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
-interface OrderItem {
-  id: string
-  name: string
-  quantity: number
-  price: number
-  total: number
-}
-
-interface Order {
-  id: string
-  customer: string
-  customerEmail: string
-  customerPhone: string
-  items: OrderItem[]
-  subtotal: number
-  tax: number
-  shipping: number
-  total: number
-  status: string
-  paymentStatus: string
-  paymentMethod: string
-  orderDate: string
-  deliveryDate?: string
-  shippingAddress: string
-  billingAddress: string
-  notes?: string
-  trackingNumber?: string
-}
 
 export function AdminOrders() {
   const { toast } = useToast()
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState("All")
-  const [orders, setOrders] = useState<Order[]>([
+  const [orders, setOrders] = useState([
     {
       id: "ORD-2024-156",
       customer: "Sharma General Store",
@@ -115,9 +87,9 @@ export function AdminOrders() {
     },
   ])
 
-  const [viewingOrder, setViewingOrder] = useState<Order | null>(null)
-  const [editingOrder, setEditingOrder] = useState<Order | null>(null)
-  const [showInvoice, setShowInvoice] = useState<Order | null>(null)
+  const [viewingOrder, setViewingOrder] = useState(null)
+  const [editingOrder, setEditingOrder] = useState(null)
+  const [showInvoice, setShowInvoice] = useState(null)
 
   const statusOptions = ["Pending", "Processing", "Shipped", "Delivered", "Cancelled"]
   const paymentStatusOptions = ["Pending", "Paid", "Failed", "Refunded"]
@@ -131,7 +103,7 @@ export function AdminOrders() {
     return matchesSearch && matchesStatus
   })
 
-  const handleUpdateOrderStatus = (orderId: string, newStatus: string) => {
+  const handleUpdateOrderStatus = (orderId, newStatus) => {
     setOrders((prev) =>
       prev.map((order) =>
         order.id === orderId
@@ -150,7 +122,7 @@ export function AdminOrders() {
     })
   }
 
-  const handleUpdatePaymentStatus = (orderId: string, newPaymentStatus: string) => {
+  const handleUpdatePaymentStatus = (orderId, newPaymentStatus) => {
     setOrders((prev) =>
       prev.map((order) => (order.id === orderId ? { ...order, paymentStatus: newPaymentStatus } : order)),
     )
@@ -161,7 +133,7 @@ export function AdminOrders() {
     })
   }
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = (status) => {
     switch (status) {
       case "Pending":
         return <Clock className="h-4 w-4" />
@@ -178,7 +150,7 @@ export function AdminOrders() {
     }
   }
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status) => {
     switch (status) {
       case "Pending":
         return "secondary"
@@ -195,7 +167,7 @@ export function AdminOrders() {
     }
   }
 
-  const getPaymentStatusColor = (status: string) => {
+  const getPaymentStatusColor = (status) => {
     switch (status) {
       case "Pending":
         return "secondary"
@@ -210,11 +182,11 @@ export function AdminOrders() {
     }
   }
 
-  const generateInvoice = (order: Order) => {
+  const generateInvoice = (order) => {
     setShowInvoice(order)
   }
 
-  const downloadInvoice = (order: Order) => {
+  const downloadInvoice = (order) => {
     // In a real app, this would generate and download a PDF
     toast({
       title: "Invoice Downloaded",

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const Cart = require('../models/Cart');
-const Product = require('../models/Product');
+const Cart = require('../models/Cart.model');
+const Product = require('../models/Product.model');
 const { protect } = require('../middleware/auth');
 
 // @desc    Get user's cart

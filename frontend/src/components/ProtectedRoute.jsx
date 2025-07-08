@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
+import { useAdmin } from "@/lib/admin";
 
 export default function ProtectedRoute({ 
   children, 
@@ -38,6 +39,27 @@ export default function ProtectedRoute({
 
   // If route requires guest and user is authenticated, don't render children
   if (requireGuest && isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+      </div>
+    );
+  }
+
+  return children;
+} 
+
+export function AdminProtected({ children }) {
+  const { isAuthenticated, user } = useAdmin();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isAuthenticated || user?.role !== "admin") {
+      router.replace("/admin/login");
+    }
+  }, [isAuthenticated, user, router]);
+
+  if (!isAuthenticated || user?.role !== "admin") {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>

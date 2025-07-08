@@ -1,6 +1,7 @@
 const User = require('../models/User.model');
 const { protect, generateToken } = require('../middleware/auth');
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
 
 // Register User
@@ -141,6 +142,38 @@ exports.loginUser = async (req, res) => {
       success: false,
       message: 'Server error. Please try again later.'
     });
+  }
+};
+
+exports.adminLogin = async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    const user = await User.findOne({ email }).select('+password');
+    if (!user) return res.status(400).json({ message: 'Invalid credentials' });
+
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
+
+    if (user.role !== 'admin') return res.status(403).json({ message: 'Not an admin user' });
+
+    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
+    res.json({ token, user: { id: user._id, email: user.email, role: user.role } });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+exports.adminAuth = (req, res, next) => {
+  const token = req.header('Authorization')?.replace('Bearer ', '');
+  if (!token) return res.status(401).json({ message: 'No token, authorization denied' });
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (decoded.role !== 'admin') return res.status(403).json({ message: 'Admin access only' });
+    req.user = decoded;
+    next();
+  } catch (err) {
+    res.status(401).json({ message: 'Token is not valid' });
   }
 };
 

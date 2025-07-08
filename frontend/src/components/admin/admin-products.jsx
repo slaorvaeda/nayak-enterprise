@@ -20,21 +20,9 @@ import { Textarea } from "@/components/ui/textarea"
 import { Plus, Edit, Trash2, Package } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
-interface Product {
-  id: number
-  name: string
-  category: string
-  price: number
-  stock: number
-  minStock: number
-  unit: string
-  description: string
-  status: string
-}
-
 export function AdminProducts() {
   const { toast } = useToast()
-  const [products, setProducts] = useState<Product[]>([
+  const [products, setProducts] = useState([
     {
       id: 1,
       name: "Rice 25kg",
@@ -82,7 +70,7 @@ export function AdminProducts() {
   ])
 
   const [isAddProductOpen, setIsAddProductOpen] = useState(false)
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null)
+  const [editingProduct, setEditingProduct] = useState(null)
   const [newProduct, setNewProduct] = useState({
     name: "",
     category: "",
@@ -107,7 +95,7 @@ export function AdminProducts() {
       return
     }
 
-    const product: Product = {
+    const product = {
       id: Date.now(),
       ...newProduct,
     }
@@ -143,7 +131,7 @@ export function AdminProducts() {
     })
   }
 
-  const handleDeleteProduct = (productId: number) => {
+  const handleDeleteProduct = (productId) => {
     setProducts((prev) => prev.filter((p) => p.id !== productId))
     toast({
       title: "Product Deleted",
@@ -151,10 +139,10 @@ export function AdminProducts() {
     })
   }
 
-  const getStockStatus = (current: number, minimum: number) => {
-    if (current === 0) return { label: "Out of Stock", variant: "destructive" as const }
-    if (current <= minimum) return { label: "Low Stock", variant: "secondary" as const }
-    return { label: "In Stock", variant: "default" as const }
+  const getStockStatus = (current, minimum) => {
+    if (current === 0) return { label: "Out of Stock", variant: "destructive" }
+    if (current <= minimum) return { label: "Low Stock", variant: "secondary" }
+    return { label: "In Stock", variant: "default" }
   }
 
   return (

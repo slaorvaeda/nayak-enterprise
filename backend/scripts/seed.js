@@ -2,8 +2,8 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 require('dotenv').config();
 
-const User = require('../models/User');
-const Product = require('../models/Product');
+const User = require('../src/models/User.model');
+const Product = require('../src/models/Product.model');
  
 
 // Sample products data

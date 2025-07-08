@@ -1,7 +1,5 @@
 "use client"
 
-import type React from "react"
-
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -11,11 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2, Shield } from "lucide-react"
 
-interface AuthGuardProps {
-  children: React.ReactNode
-}
-
-export function AuthGuard({ children }: AuthGuardProps) {
+export function AuthGuard({ children }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [username, setUsername] = useState("")
@@ -32,7 +26,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
     setIsLoading(false)
   }, [])
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e) => {
     e.preventDefault()
     setError("")
     setIsLoading(true)

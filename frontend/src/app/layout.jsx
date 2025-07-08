@@ -2,7 +2,7 @@ import React from "react";
 import { Inter } from "next/font/google";
 import "./globals.css";
 // import { Toaster } from "@/components/Toaster";
-import Navbar from "@/components/Navbar";
+import ClientNavbar from "@/components/ClientNavbar";
 import Footer from "@/components/Footer";
 import ThemeProvider from "@/components/ThemeProvider";
 import Toaster from "@/components/Toaster";
@@ -18,14 +18,13 @@ export const metadata = {
 };
 
 export default function RootLayout({ children }) {
- 
 
   return (
     <html lang="en" suppressHydrationWarning >
       <body className={`${inter.className}`}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          {}
-          <Navbar />
+          {/* Hide Navbar on /admin routes using ClientNavbar */}
+          <ClientNavbar />
           <main className="min-h-screen">{children}</main>
           <Footer />
           <Toaster />

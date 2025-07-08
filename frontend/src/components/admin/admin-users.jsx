@@ -19,23 +19,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { UserPlus, Edit, Trash2, Shield } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
-interface AdminUser {
-  id: number
-  name: string
-  email: string
-  role: string
-  status: string
-  lastLogin: string
-  permissions: string[]
-}
-
-interface AdminUsersProps {
-  currentUser: any
-}
-
-export function AdminUsers({ currentUser }: AdminUsersProps) {
+export function AdminUsers({ currentUser }) {
   const { toast } = useToast()
-  const [users, setUsers] = useState<AdminUser[]>([
+  const [users, setUsers] = useState([
     {
       id: 1,
       name: "Admin User",
@@ -75,7 +61,7 @@ export function AdminUsers({ currentUser }: AdminUsersProps) {
   ])
 
   const [isAddUserOpen, setIsAddUserOpen] = useState(false)
-  const [editingUser, setEditingUser] = useState<AdminUser | null>(null)
+  const [editingUser, setEditingUser] = useState(null)
   const [newUser, setNewUser] = useState({
     name: "",
     email: "",
@@ -101,7 +87,7 @@ export function AdminUsers({ currentUser }: AdminUsersProps) {
     }
 
     const roleData = roles.find((r) => r.value === newUser.role)
-    const user: AdminUser = {
+    const user = {
       id: Date.now(),
       ...newUser,
       lastLogin: "Never",
@@ -118,7 +104,7 @@ export function AdminUsers({ currentUser }: AdminUsersProps) {
     })
   }
 
-  const handleEditUser = (user: AdminUser) => {
+  const handleEditUser = (user) => {
     setEditingUser(user)
   }
 
@@ -134,7 +120,7 @@ export function AdminUsers({ currentUser }: AdminUsersProps) {
     })
   }
 
-  const handleDeleteUser = (userId: number) => {
+  const handleDeleteUser = (userId) => {
     setUsers((prev) => prev.filter((u) => u.id !== userId))
     toast({
       title: "User Deleted",
@@ -142,13 +128,13 @@ export function AdminUsers({ currentUser }: AdminUsersProps) {
     })
   }
 
-  const toggleUserStatus = (userId: number) => {
+  const toggleUserStatus = (userId) => {
     setUsers((prev) =>
       prev.map((u) => (u.id === userId ? { ...u, status: u.status === "Active" ? "Inactive" : "Active" } : u)),
     )
   }
 
-  const getRoleBadgeColor = (role: string) => {
+  const getRoleBadgeColor = (role) => {
     switch (role) {
       case "Super Admin":
         return "destructive"

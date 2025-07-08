@@ -77,7 +77,7 @@ export function AdminLiveView() {
     return () => clearInterval(interval)
   }, [isLive])
 
-  const getActivityIcon = (type: string) => {
+  const getActivityIcon = (type) => {
     switch (type) {
       case "order":
         return <ShoppingCart className="h-4 w-4" />
@@ -94,7 +94,7 @@ export function AdminLiveView() {
     }
   }
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status) => {
     switch (status) {
       case "new":
         return "bg-blue-500"

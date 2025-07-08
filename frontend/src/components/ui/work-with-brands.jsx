@@ -4,14 +4,17 @@ import Image from "next/image"
 import { useRef, useEffect } from "react"
 
 const brands = [
-  { name: "Brand A", logo: "/placeholder-logo.png" },
-  { name: "Brand B", logo: "/placeholder-logo.png" },
-  { name: "Brand C", logo: "/placeholder-logo.png" },
-  { name: "Brand D", logo: "/placeholder-logo.png" },
-  { name: "Brand E", logo: "/placeholder-logo.png" },
-  { name: "Brand F", logo: "/placeholder-logo.png" },
-  { name: "Brand G", logo: "/placeholder-logo.png" },
-  { name: "Brand H", logo: "/placeholder-logo.png" },
+  { name: "Aipl", logo: "/images/home/aipl.png" },
+  { name: "Charminar", logo: "/images/home/charminar.png" },
+  { name: "hp", logo: "/images/home/hp.png" },
+  { name: "jivanjore", logo: "/images/home/jivanjore.png" },
+  { name: "jksuperdrive", logo: "/images/home/jksuperdrive.png" },
+  { name: "kores", logo: "/images/home/Kores.png" },
+  { name: "Mobaj", logo: "/images/home/mobaj.png" },
+  { name: "petro", logo: "/images/home/petro.png" },
+  { name: "pioneer", logo: "/images/home/Pioneer.png" },
+  { name: "sheenac", logo: "/images/home/sheenac.png" },
+  { name: "UrbanEdge", logo: "/images/home/UrbanEdge.png" }
 ]
 
 export function WorkWithBrands() {

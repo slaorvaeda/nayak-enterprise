@@ -13,11 +13,20 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
 import { AdminSidebar } from "./admin-sidebar"
+import { useAuth } from "@/lib/auth"
+import { useRouter } from "next/navigation"
+import { useAdmin } from "@/lib/admin"
+import Link from "next/link"
 
 export function AdminHeader() {
+  const { logout } = useAdmin()
+  const router = useRouter()
+
   return (
     <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
-      <AdminSidebar />
+      <div className="block md:hidden  h-screen">
+        <AdminSidebar className={`min-h-screen`}/>
+      </div>
 
       <div className="w-full flex-1">
         <form className="relative max-w-md">
@@ -29,7 +38,6 @@ export function AdminHeader() {
           />
         </form>
       </div>
-
       <div className="flex items-center gap-2">
         <Button variant="outline" size="icon" className="relative bg-transparent">
           <Bell className="h-4 w-4" />
@@ -46,10 +54,19 @@ export function AdminHeader() {
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Admin Account</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Settings</DropdownMenuItem>
-            <DropdownMenuItem>Support</DropdownMenuItem>
+            <DropdownMenuItem>
+              <Link href="/admin/settings">Settings</Link>
+            </DropdownMenuItem>
+            {/* <DropdownMenuItem>Support</DropdownMenuItem> */}
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Logout</DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                logout()
+                router.replace("/admin/login")
+              }}
+            >
+              Logout
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

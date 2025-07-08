@@ -33,9 +33,9 @@ export default function LoginPage() {
     try {
       const result = await login(formData.email, formData.password)
       
-      if (result.success) {
-        // Redirect based on user role
-        if (user?.role === 'admin') {
+      if (result.success && result.data && result.data.user) {
+        // Redirect based on user role from backend response
+        if (result.data.user.role === 'admin') {
           window.location.href = '/admin'
         } else {
           window.location.href = '/profile'

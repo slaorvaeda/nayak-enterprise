@@ -196,4 +196,57 @@ export function AdminSettings() {
             <div className="flex items-center justify-between">
               <div>
                 <Label htmlFor="smsNotifications">SMS Notifications</Label>
-                <p className="\
+                <p className="text-sm text-muted-foreground">Receive notifications via SMS</p>
+              </div>
+              <Switch
+                id="smsNotifications"
+                checked={settings.smsNotifications}
+                onCheckedChange={(checked) => setSettings(prev => ({ ...prev, smsNotifications: checked }))}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="lowStockAlerts">Low Stock Alerts</Label>
+                <p className="text-sm text-muted-foreground">Get notified when stock is low</p>
+              </div>
+              <Switch
+                id="lowStockAlerts"
+                checked={settings.lowStockAlerts}
+                onCheckedChange={(checked) => setSettings(prev => ({ ...prev, lowStockAlerts: checked }))}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="orderNotifications">Order Notifications</Label>
+                <p className="text-sm text-muted-foreground">Receive updates on new orders</p>
+              </div>
+              <Switch
+                id="orderNotifications"
+                checked={settings.orderNotifications}
+                onCheckedChange={(checked) => setSettings(prev => ({ ...prev, orderNotifications: checked }))}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="flex gap-4 justify-end">
+        <button
+          type="button"
+          className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-semibold"
+          onClick={handleSave}
+        >
+          Save Settings
+        </button>
+        <button
+          type="button"
+          className="px-6 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 font-semibold"
+          onClick={handleReset}
+        >
+          Reset to Default
+        </button>
+      </div>
+    </div>
+  )
+}
