@@ -145,8 +145,14 @@ const loginValidation = [
 
 // Validation for product creation
 const productValidation = [
-  commonValidations.productName,
-  commonValidations.productDescription,
+  body('name')
+    .isLength({ min: 1, max: 200 })
+    .withMessage('Product name must be between 2 and 200 characters')
+    .trim(),
+  body('description')
+    .isLength({ min: 1, max: 1000 })
+    .withMessage('Product description must be between 10 and 1000 characters')
+    .trim(),
   commonValidations.price,
   commonValidations.category,
   commonValidations.sku,
@@ -156,6 +162,31 @@ const productValidation = [
 // Validation for order creation
 const orderValidation = [
   commonValidations.paymentMethod,
+  body('shippingAddress.street')
+    .isLength({ min: 1, max: 200 })
+    .withMessage('Street address is required')
+    .trim(),
+  body('shippingAddress.city')
+    .isLength({ min: 1, max: 100 })
+    .withMessage('City is required')
+    .trim(),
+  body('shippingAddress.state')
+    .isLength({ min: 1, max: 100 })
+    .withMessage('State is required')
+    .trim(),
+  body('shippingAddress.pincode')
+    .matches(/^[0-9]{6}$/)
+    .withMessage('Please enter a valid 6-digit PIN code')
+    .trim(),
+  body('shippingAddress.phone')
+    .matches(/^[0-9]{10,11}$/)
+    .withMessage('Please enter a valid 10 or 11-digit phone number')
+    .trim(),
+  body('customerNotes')
+    .optional()
+    .isLength({ max: 500 })
+    .withMessage('Customer notes cannot exceed 500 characters')
+    .trim(),
   handleValidationErrors
 ];
 

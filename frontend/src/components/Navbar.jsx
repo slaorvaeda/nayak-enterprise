@@ -19,7 +19,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { useCart } from "@/hooks/use-cart";
+import { useSelector, useDispatch } from 'react-redux';
+import { clearCartOnLogout } from '@/store/cartSlice';
 import ThemeToggle from "@/components/ThemeToggle";
 import { useTheme } from "next-themes";
 import { useAuth } from "@/lib/auth";
@@ -29,8 +30,9 @@ export default function Navbar() {
   const [searchQuery, setSearchQuery] = useState("");
   const {setTheme, resolvedTheme} = useTheme();
   const router = useRouter();
-  const { items } = useCart();
+  const items = useSelector((state) => state.cart.items);
   const { user, isAuthenticated, logout } = useAuth();
+  const dispatch = useDispatch();
 
   const cartItemsCount = items.reduce((total, item) => total + item.quantity, 0);
 
@@ -118,15 +120,17 @@ export default function Navbar() {
           </div>
           <nav className="flex items-center space-x-2">
             <ThemeToggle />
-            <Button variant="ghost" size="icon" asChild>
-              <Link href="/cart" className="relative">
-                <ShoppingCart className="h-4 w-4" />
-                {cartItemsCount > 0 && (
-                  <Badge className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 text-xs">{cartItemsCount}</Badge>
-                )}
-                <span className="sr-only">Shopping Cart</span>
-              </Link>
-            </Button>
+            {isAuthenticated && (
+              <Button variant="ghost" size="icon" asChild>
+                <Link href="/cart" className="relative">
+                  <ShoppingCart className="h-4 w-4" />
+                  {cartItemsCount > 0 && (
+                    <Badge className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 text-xs">{cartItemsCount}</Badge>
+                  )}
+                  <span className="sr-only">Shopping Cart</span>
+                </Link>
+              </Button>
+            )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="cursor-pointer">
@@ -157,6 +161,7 @@ export default function Navbar() {
                       className="cursor-pointer text-red-600"
                       onClick={() => {
                         logout();
+                        dispatch(clearCartOnLogout());
                         router.push('/');
                       }}
                     >

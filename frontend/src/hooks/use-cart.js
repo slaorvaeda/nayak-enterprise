@@ -31,7 +31,7 @@ export const useCart = create(
         set({ isLoading: true, error: null });
         
         try {
-          const response = await api.cart.addItem(product.id, quantity);
+          const response = await api.cart.addItem(product._id || product.id, quantity);
           set({ 
             items: response.data.items || [], 
             isLoading: false 

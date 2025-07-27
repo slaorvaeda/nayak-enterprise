@@ -4,6 +4,7 @@ const User = require('../models/User.model');
 const Order = require('../models/Order.model');
 const { protect, admin } = require('../middleware/auth');
 const { getUserProfile, updateUserProfile, updateUserProfileById } = require('../controllers/UserController');
+const { createUserByAdmin, updateUserByAdmin } = require('../controllers/UserController');
 
 
 router.get('/profile', protect, getUserProfile);

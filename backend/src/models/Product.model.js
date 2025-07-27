@@ -198,8 +198,9 @@ productSchema.virtual('stockStatus').get(function() {
 
 // Virtual for primary image
 productSchema.virtual('primaryImage').get(function() {
-  const primary = this.images.find(img => img.isPrimary);
-  return primary ? primary.url : (this.images.length > 0 ? this.images[0].url : null);
+  const images = Array.isArray(this.images) ? this.images : [];
+  const primary = images.find(img => img.isPrimary);
+  return primary ? primary.url : (images.length > 0 ? images[0].url : null);
 });
 
 // Method to update stock

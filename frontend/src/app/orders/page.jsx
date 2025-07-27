@@ -1,240 +1,282 @@
 "use client"
 
-import { Calendar, Package, Search, Truck, CheckCircle, Clock, XCircle } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { useSelector, useDispatch } from 'react-redux'
+import { Package, Clock, CheckCircle, Truck, AlertCircle, Eye } from "lucide-react"
+import Link from "next/link"
+import Image from "next/image"
 
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
-import ProtectedRoute from "@/components/ProtectedRoute"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useToast } from "@/hooks/use-toast"
+import { useAuth } from '@/lib/auth'
+import { fetchOrders, selectOrders, selectOrderStatus, selectOrderError, selectOrderPagination, clearError } from '@/store/orderSlice'
 
-// Mock orders data
-const orders = [
-	{
-		id: "ORD-2024-001",
-		date: "2024-01-15",
-		status: "Delivered",
-		items: 12,
-		total: 15750,
-		trackingNumber: "TRK123456789",
-		estimatedDelivery: "2024-01-18",
-		products: [
-			{ name: "Premium Rice (25kg)", quantity: 10, price: 1250 },
-			{ name: "Cooking Oil (15L)", quantity: 2, price: 2100 },
-		],
-	},
-	{
-		id: "ORD-2024-002",
-		date: "2024-01-10",
-		status: "In Transit",
-		items: 8,
-		total: 9200,
-		trackingNumber: "TRK987654321",
-		estimatedDelivery: "2024-01-16",
-		products: [
-			{ name: "Detergent Powder (5kg)", quantity: 8, price: 450 },
-			{ name: "Tea Packets (250g x 20)", quantity: 2, price: 1800 },
-		],
-	},
-	{
-		id: "ORD-2024-003",
-		date: "2024-01-05",
-		status: "Processing",
-		items: 15,
-		total: 22100,
-		trackingNumber: null,
-		estimatedDelivery: "2024-01-12",
-		products: [
-			{ name: "Premium Rice (25kg)", quantity: 15, price: 1250 },
-			{ name: "Biscuits Assorted (24 packs)", quantity: 5, price: 960 },
-		],
-	},
-	{
-		id: "ORD-2024-004",
-		date: "2023-12-28",
-		status: "Cancelled",
-		items: 6,
-		total: 5400,
-		trackingNumber: null,
-		estimatedDelivery: null,
-		products: [{ name: "Shampoo Bottles (500ml x 12)", quantity: 6, price: 1440 }],
-	},
-]
+const getStatusIcon = (status) => {
+  switch (status) {
+    case 'pending':
+      return <Clock className="h-4 w-4 text-yellow-600" />
+    case 'confirmed':
+      return <CheckCircle className="h-4 w-4 text-blue-600" />
+    case 'processing':
+      return <Package className="h-4 w-4 text-purple-600" />
+    case 'shipped':
+      return <Truck className="h-4 w-4 text-green-600" />
+    case 'delivered':
+      return <CheckCircle className="h-4 w-4 text-green-600" />
+    case 'cancelled':
+      return <AlertCircle className="h-4 w-4 text-red-600" />
+    default:
+      return <Clock className="h-4 w-4 text-gray-600" />
+  }
+}
 
-const statusConfig = {
-	Processing: { icon: Clock, color: "bg-yellow-100 text-yellow-800", bgColor: "bg-yellow-50" },
-	"In Transit": { icon: Truck, color: "bg-blue-100 text-blue-800", bgColor: "bg-blue-50" },
-	Delivered: { icon: CheckCircle, color: "bg-green-100 text-green-800", bgColor: "bg-green-50" },
-	Cancelled: { icon: XCircle, color: "bg-red-100 text-red-800", bgColor: "bg-red-50" },
+const getStatusColor = (status) => {
+  switch (status) {
+    case 'pending':
+      return 'bg-yellow-100 text-yellow-800'
+    case 'confirmed':
+      return 'bg-blue-100 text-blue-800'
+    case 'processing':
+      return 'bg-purple-100 text-purple-800'
+    case 'shipped':
+      return 'bg-green-100 text-green-800'
+    case 'delivered':
+      return 'bg-green-100 text-green-800'
+    case 'cancelled':
+      return 'bg-red-100 text-red-800'
+    default:
+      return 'bg-gray-100 text-gray-800'
+  }
 }
 
 export default function OrdersPage() {
-	const [searchQuery, setSearchQuery] = useState("")
-	const [statusFilter, setStatusFilter] = useState("All")
-	const [selectedOrder, setSelectedOrder] = useState(null)
+  const dispatch = useDispatch()
+  const { toast } = useToast()
+  const { isAuthenticated } = useAuth()
+  
+  const orders = useSelector(selectOrders)
+  const status = useSelector(selectOrderStatus)
+  const error = useSelector(selectOrderError)
+  const pagination = useSelector(selectOrderPagination)
+  
+  const [currentPage, setCurrentPage] = useState(1)
+  const [statusFilter, setStatusFilter] = useState('All')
 
-	const filteredOrders = orders.filter((order) => {
-		const matchesSearch = order.id.toLowerCase().includes(searchQuery.toLowerCase())
-		const matchesStatus = statusFilter === "All" || order.status === statusFilter
-		return matchesSearch && matchesStatus
-	})
+  useEffect(() => {
+    if (isAuthenticated) {
+      dispatch(fetchOrders({ page: currentPage, limit: 10, status: statusFilter }))
+    }
+  }, [dispatch, isAuthenticated, currentPage, statusFilter])
 
-	return (
-		<ProtectedRoute requireAuth={true}>
-		<div className="container mx-auto px-4 py-8">
-			<div className="max-w-6xl mx-auto">
-				<div className="mb-8">
-					<h1 className="text-3xl font-bold mb-4">Order History</h1>
-					<p className="text-muted-foreground">Track and manage all your wholesale orders in one place.</p>
-				</div>
+  useEffect(() => {
+    if (error) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to load orders",
+        variant: "destructive",
+      })
+      dispatch(clearError())
+    }
+  }, [error, toast, dispatch])
 
-				{/* Filters */}
-				<div className="flex flex-col sm:flex-row gap-4 mb-6">
-					<div className="flex-1">
-						<div className="relative">
-							<Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-							<Input
-								placeholder="Search orders by ID..."
-								value={searchQuery}
-								onChange={(e) => setSearchQuery(e.target.value)}
-								className="pl-10"
-							/>
-						</div>
-					</div>
-					<Select value={statusFilter} onValueChange={setStatusFilter}>
-						<SelectTrigger className="w-[180px]">
-							<SelectValue placeholder="Filter by status" />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="All">All Orders</SelectItem>
-							<SelectItem value="Processing">Processing</SelectItem>
-							<SelectItem value="In Transit">In Transit</SelectItem>
-							<SelectItem value="Delivered">Delivered</SelectItem>
-							<SelectItem value="Cancelled">Cancelled</SelectItem>
-						</SelectContent>
-					</Select>
-				</div>
+  const handleStatusFilterChange = (value) => {
+    setStatusFilter(value)
+    setCurrentPage(1) // Reset to first page when filter changes
+  }
 
-				{/* Orders List */}
-				<div className="space-y-4">
-					{filteredOrders.map((order) => {
-						const statusKey = order.status
-						const StatusIcon = statusConfig[statusKey].icon
-						const isExpanded = selectedOrder === order.id
+  const handlePageChange = (page) => {
+    setCurrentPage(page)
+  }
 
-						return (
-							<Card key={order.id} className="overflow-hidden">
-								<CardHeader
-									className="cursor-pointer hover:bg-gray-50"
-									onClick={() => setSelectedOrder(isExpanded ? null : order.id)}
-								>
-									<div className="flex items-center justify-between">
-										<div className="flex items-center space-x-4">
-											<div className={`p-2 rounded-full ${statusConfig[statusKey].bgColor}`}>
-												<StatusIcon className={`h-5 w-5 ${statusConfig[statusKey].color.split(" ")[1]}`} />
-											</div>
-											<div>
-												<CardTitle className="text-lg">{order.id}</CardTitle>
-												<CardDescription className="flex items-center gap-4">
-													<span className="flex items-center gap-1">
-														<Calendar className="h-4 w-4" />
-														{order.date}
-													</span>
-													<span className="flex items-center gap-1">
-														<Package className="h-4 w-4" />
-														{order.items} items
-													</span>
-												</CardDescription>
-											</div>
-										</div>
-										<div className="text-right">
-											<p className="text-xl font-bold">₹{order.total.toLocaleString()}</p>
-											<Badge className={statusConfig[statusKey].color}>{order.status}</Badge>
-										</div>
-									</div>
-								</CardHeader>
+  if (!isAuthenticated) {
+    return (
+      <div className="container mx-auto px-4 py-8 text-center">
+        <h1 className="text-2xl font-bold mb-4">Please log in to view your orders</h1>
+        <p className="text-muted-foreground mb-6">You must be signed in to view your order history.</p>
+        <Button asChild>
+          <Link href="/login">Go to Login</Link>
+        </Button>
+      </div>
+    )
+  }
 
-								{isExpanded && (
-									<CardContent className="pt-0">
-										<Separator className="mb-4" />
+  if (status === 'loading') {
+    return (
+      <div className="container mx-auto px-4 py-8 text-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+        <p className="mt-2 text-muted-foreground">Loading your orders...</p>
+      </div>
+    )
+  }
 
-										{/* Order Details */}
-										<div className="grid md:grid-cols-2 gap-6">
-											<div>
-												<h4 className="font-semibold mb-3">Order Items</h4>
-												<div className="space-y-2">
-													{order.products.map((product, index) => (
-														<div
-															key={index}
-															className="flex justify-between items-center py-2 border-b last:border-b-0"
-														>
-															<div>
-																<p className="font-medium">{product.name}</p>
-																<p className="text-sm text-muted-foreground">Qty: {product.quantity}</p>
-															</div>
-															<p className="font-medium">₹{(product.price * product.quantity).toLocaleString()}</p>
-														</div>
-													))}
-												</div>
-											</div>
+  return (
+    <div className="container mx-auto px-4 py-6 sm:py-8">
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold">My Orders</h1>
+            <p className="text-muted-foreground">Track your order history and status</p>
+          </div>
+          <Button asChild>
+            <Link href="/catalog">Continue Shopping</Link>
+          </Button>
+        </div>
 
-											<div>
-												<h4 className="font-semibold mb-3">Shipping Information</h4>
-												<div className="space-y-2">
-													{order.trackingNumber && (
-														<div>
-															<p className="text-sm text-muted-foreground">Tracking Number</p>
-															<p className="font-medium">{order.trackingNumber}</p>
-														</div>
-													)}
-													{order.estimatedDelivery && (
-														<div>
-															<p className="text-sm text-muted-foreground">Estimated Delivery</p>
-															<p className="font-medium">{order.estimatedDelivery}</p>
-														</div>
-													)}
-												</div>
+        {/* Filters */}
+        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          <div className="flex-1">
+            <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
+              <SelectTrigger>
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All">All Orders</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="confirmed">Confirmed</SelectItem>
+                <SelectItem value="processing">Processing</SelectItem>
+                <SelectItem value="shipped">Shipped</SelectItem>
+                <SelectItem value="delivered">Delivered</SelectItem>
+                <SelectItem value="cancelled">Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
 
-												<div className="mt-4 space-y-2">
-													{order.status === "In Transit" && (
-														<Button variant="outline" className="w-full bg-transparent">
-															Track Package
-														</Button>
-													)}
-													{order.status === "Delivered" && (
-														<Button variant="outline" className="w-full bg-transparent">
-															Reorder Items
-														</Button>
-													)}
-													<Button variant="ghost" className="w-full">
-														Download Invoice
-													</Button>
-												</div>
-											</div>
-										</div>
-									</CardContent>
-								)}
-							</Card>
-						)
-					})}
-				</div>
+        {/* Orders List */}
+        {orders.length === 0 ? (
+          <Card>
+            <CardContent className="py-12 text-center">
+              <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No orders found</h3>
+              <p className="text-muted-foreground mb-4">
+                {statusFilter === 'All' 
+                  ? "You haven't placed any orders yet." 
+                  : `No ${statusFilter} orders found.`
+                }
+              </p>
+              <Button asChild>
+                <Link href="/catalog">Start Shopping</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-4">
+            {orders.map((order) => (
+              <Card key={order._id} className="hover:shadow-md transition-shadow">
+                <CardContent className="p-6">
+                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                    {/* Order Info */}
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-3">
+                        <h3 className="font-semibold text-lg">Order #{order.orderNumber}</h3>
+                        <Badge className={getStatusColor(order.status)}>
+                          {getStatusIcon(order.status)}
+                          <span className="ml-1">{order.status.charAt(0).toUpperCase() + order.status.slice(1)}</span>
+                        </Badge>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm text-muted-foreground">
+                        <div>
+                          <span className="font-medium">Date:</span> {new Date(order.orderDate).toLocaleDateString()}
+                        </div>
+                        <div>
+                          <span className="font-medium">Items:</span> {order.items.length} products
+                        </div>
+                        <div>
+                          <span className="font-medium">Total:</span> ₹{order.total.toFixed(2)}
+                        </div>
+                        <div>
+                          <span className="font-medium">Payment:</span> {order.paymentMethod === 'cod' ? 'COD' : order.paymentMethod}
+                        </div>
+                      </div>
 
-				{filteredOrders.length === 0 && (
-					<div className="text-center py-12">
-						<Package className="h-16 w-16 mx-auto text-gray-400 mb-4" />
-						<h3 className="text-lg font-semibold mb-2">No orders found</h3>
-						<p className="text-muted-foreground">
-							{searchQuery || statusFilter !== "All"
-								? "Try adjusting your search or filter criteria."
-								: "You haven't placed any orders yet."}
-						</p>
-					</div>
-				)}
-			</div>
-		</div>
-		</ProtectedRoute>
-	)
+                      {/* Order Items Preview */}
+                      <div className="mt-4">
+                        <div className="flex gap-2">
+                          {order.items.slice(0, 3).map((item, index) => (
+                            <div key={index} className="flex items-center gap-2 text-sm">
+                              <Image
+                                src={(item.product?.images?.[0]?.url || "/placeholder.svg").trimEnd()}
+                                alt={item.name}
+                                width={32}
+                                height={32}
+                                className="rounded object-cover"
+                              />
+                              <span className="truncate max-w-20">{item.name}</span>
+                              <span className="text-muted-foreground">×{item.quantity}</span>
+                            </div>
+                          ))}
+                          {order.items.length > 3 && (
+                            <span className="text-sm text-muted-foreground">
+                              +{order.items.length - 3} more
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Action Button */}
+                    <div className="flex-shrink-0">
+                      <Button asChild variant="outline">
+                        <Link href={`/orders/${order._id}`}>
+                          <Eye className="h-4 w-4 mr-2" />
+                          View Details
+                        </Link>
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+
+        {/* Pagination */}
+        {pagination.totalPages > 1 && (
+          <div className="flex justify-center mt-8">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={!pagination.hasPrevPage}
+              >
+                Previous
+              </Button>
+              
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                  const page = i + 1;
+                  return (
+                    <Button
+                      key={page}
+                      variant={currentPage === page ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => handlePageChange(page)}
+                      className="w-8 h-8 p-0"
+                    >
+                      {page}
+                    </Button>
+                  );
+                })}
+              </div>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={!pagination.hasNextPage}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
 }

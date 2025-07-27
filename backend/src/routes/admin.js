@@ -3,15 +3,21 @@ const router = express.Router();
 const User = require('../models/User.model');
 const Product = require('../models/Product.model');
 const Order = require('../models/Order.model');
+const Payment = require('../models/Payment.model');
 const { protect, admin } = require('../middleware/auth');
-const { adminAuth, adminLogin } = require('../controllers/authContoller');
+const { adminAuth, adminLogin, userAdmin, getProducts, adminCreateUser, adminUpdateUser } = require('../controllers/authContoller');
 
-
+// Login admin
 router.post('/login', adminLogin);
-
-// @desc    Get admin dashboard overview
-// @route   GET /api/admin/dashboard
-// @access  Private/Admin
+//Get users by admin panel
+router.get('/users', protect, adminAuth, userAdmin);
+//Get products by admin panel
+router.get('/products', protect, adminAuth, getProducts);
+// Admin: Create a new user
+router.post('/users', protect, adminAuth, adminCreateUser);
+// Admin: Update any user
+router.put('/users/:id', protect, adminAuth, adminUpdateUser);
+// Get admin dashboard overview
 router.get('/dashboard', protect, adminAuth, async (req, res) => {
   try {
     // Get total counts
@@ -132,10 +138,7 @@ router.get('/dashboard', protect, adminAuth, async (req, res) => {
     });
   }
 });
-
-// @desc    Get admin analytics
-// @route   GET /api/admin/analytics
-// @access  Private/Admin
+// Get admin analytics
 router.get('/analytics', protect, admin, async (req, res) => {
   try {
     const { period = '30' } = req.query;
@@ -256,9 +259,7 @@ router.get('/analytics', protect, admin, async (req, res) => {
   }
 });
 
-// @desc    Get all orders (Admin)
-// @route   GET /api/admin/orders
-// @access  Private/Admin
+// Get all orders (Admin)
 router.get('/orders', protect, admin, async (req, res) => {
   try {
     const {
@@ -326,9 +327,7 @@ router.get('/orders', protect, admin, async (req, res) => {
   }
 });
 
-// @desc    Update order status (Admin)
-// @route   PUT /api/admin/orders/:id/status
-// @access  Private/Admin
+// Update order status (Admin)
 router.put('/orders/:id/status', protect, admin, async (req, res) => {
   try {
     const { status, trackingNumber, carrier, estimatedDelivery, adminNotes } = req.body;
@@ -372,9 +371,92 @@ router.put('/orders/:id/status', protect, admin, async (req, res) => {
   }
 });
 
-// @desc    Get system statistics
-// @route   GET /api/admin/stats
-// @access  Private/Admin
+// Get all customers (Admin)
+router.get('/customers', protect, admin, async (req, res) => {
+  try {
+    const customers = await User.find({ role: 'customer' }).select('businessName email phone isVerified createdAt');
+    res.json({
+      success: true,
+      data: { customers }
+    });
+  } catch (error) {
+    console.error('Get customers error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch customers'
+    });
+  }
+});
+
+// Get all orders for a customer (Admin)
+router.get('/customers/:id/orders', protect, admin, async (req, res) => {
+  try {
+    const orders = await Order.find({ customer: req.params.id }).sort({ orderDate: -1 });
+    res.json({ success: true, data: { orders } });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to fetch orders' });
+  }
+});
+
+// Get all payments for a customer (Admin)
+router.get('/customers/:id/payments', protect, admin, async (req, res) => {
+  try {
+    const payments = await Payment.find({ customer: req.params.id }).sort({ date: -1 });
+    res.json({ success: true, data: { payments } });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to fetch payments' });
+  }
+});
+
+// Add a payment for a customer (Admin)
+router.post('/customers/:id/payments', protect, admin, async (req, res) => {
+  try {
+    const { amount, method, status, notes, type } = req.body;
+    const payment = await Payment.create({
+      customer: req.params.id,
+      amount,
+      method,
+      status: status || 'completed',
+      notes,
+      type: type || 'debit'
+    });
+    res.json({ success: true, data: { payment } });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to add payment' });
+  }
+});
+
+// Edit a payment/credit
+router.put('/customers/:customerId/payments/:paymentId', protect, admin, async (req, res) => {
+  try {
+    const { amount, method, status, notes, type } = req.body;
+    const payment = await Payment.findOneAndUpdate(
+      { _id: req.params.paymentId, customer: req.params.customerId },
+      { amount, method, status, notes, type },
+      { new: true }
+    );
+    if (!payment) return res.status(404).json({ success: false, message: 'Payment not found' });
+    res.json({ success: true, data: { payment } });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to update payment' });
+  }
+});
+
+// Delete a payment/credit
+router.delete('/customers/:customerId/payments/:paymentId', protect, admin, async (req, res) => {
+  try {
+    const payment = await Payment.findOneAndDelete({
+      _id: req.params.paymentId,
+      customer: req.params.customerId
+    });
+    if (!payment) return res.status(404).json({ success: false, message: 'Payment not found' });
+    res.json({ success: true, message: 'Payment deleted' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to delete payment' });
+  }
+});
+
+// Get system statistics
 router.get('/stats', protect, admin, async (req, res) => {
   try {
     // Today's stats

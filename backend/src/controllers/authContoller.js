@@ -2,6 +2,7 @@ const User = require('../models/User.model');
 const { protect, generateToken } = require('../middleware/auth');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const ProductModel = require('../models/Product.model');
 
 
 // Register User
@@ -145,6 +146,7 @@ exports.loginUser = async (req, res) => {
   }
 };
 
+//Login Admin
 exports.adminLogin = async (req, res) => {
   const { email, password } = req.body;
   try {
@@ -163,19 +165,157 @@ exports.adminLogin = async (req, res) => {
   }
 };
 
+//Admin Auth
 exports.adminAuth = (req, res, next) => {
-  const token = req.header('Authorization')?.replace('Bearer ', '');
-  if (!token) return res.status(401).json({ message: 'No token, authorization denied' });
+  // The protect middleware already verified the token and set req.user
+  if (!req.user) {
+    return res.status(401).json({ message: 'No token, authorization denied' });
+  }
 
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ message: 'Admin access only' });
+  }
+
+  next();
+};
+
+//admin get the all users
+exports.userAdmin = async(req, res, next ) =>{
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    if (decoded.role !== 'admin') return res.status(403).json({ message: 'Admin access only' });
-    req.user = decoded;
-    next();
-  } catch (err) {
-    res.status(401).json({ message: 'Token is not valid' });
+    const users = await User.find();
+    res.status(200).json(users);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+  
+  
+};
+
+// Admin: Create a new user
+exports.adminCreateUser = async (req, res) => {
+  try {
+    const {
+      businessName,
+      businessType,
+      ownerName,
+      email,
+      phone,
+      image,
+      address,
+      city,
+      state,
+      pincode,
+      gstNumber,
+      businessDescription,
+      password,
+      isVerified,
+      isActive,
+      role
+    } = req.body;
+
+    // Compose address object
+    const addressObj = address ? address : {
+      street: address,
+      city,
+      state,
+      pincode
+    };
+
+    // Create user
+    const user = await User.create({
+      businessName,
+      businessType,
+      ownerName,
+      email,
+      phone,
+      image,
+      address: addressObj,
+      gstNumber,
+      businessDescription,
+      password,
+      isVerified,
+      isActive,
+      role
+    });
+
+    const userObj = user.toObject();
+    delete userObj.password;
+
+    res.status(201).json({
+      success: true,
+      message: 'User created successfully',
+      data: { user: userObj }
+    });
+  } catch (error) {
+    console.error('Admin create user error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create user',
+      error: error.message
+    });
   }
 };
 
+// Admin: Update any user by ID
+exports.adminUpdateUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
 
+    // If address fields are present, compose address object
+    if (updateData.address || updateData.city || updateData.state || updateData.pincode) {
+      updateData.address = updateData.address || {};
+      if (updateData.city) updateData.address.city = updateData.city;
+      if (updateData.state) updateData.address.state = updateData.state;
+      if (updateData.pincode) updateData.address.pincode = updateData.pincode;
+      if (updateData.street) updateData.address.street = updateData.street;
+    }
 
+    // Remove undefined fields
+    Object.keys(updateData).forEach(key => {
+      if (updateData[key] === undefined) {
+        delete updateData[key];
+      }
+    });
+
+    const user = await User.findByIdAndUpdate(
+      id,
+      updateData,
+      { new: true, runValidators: true }
+    ).select('-password');
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'User updated successfully',
+      data: { user }
+    });
+  } catch (error) {
+    console.error('Admin update user error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update user',
+      error: error.message
+    });
+  }
+};
+
+//admin get the all products
+exports.getProducts = async (req, res) => {
+  try {
+    const products = await ProductModel.find()
+      .select('-__v')
+      .sort({ createdAt: -1 });
+    
+    res.json(products);
+  } catch (error) {
+    console.error('Get products error:', error);
+    res.status(500).json({ message: 'Failed to fetch products' });
+  }
+};

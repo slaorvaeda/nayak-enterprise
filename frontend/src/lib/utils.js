@@ -1,5 +1,6 @@
 import { clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { useAuth } from "@/lib/auth";
 
 export function cn(...inputs) {
   return twMerge(clsx(inputs))
@@ -13,12 +14,20 @@ export const api = {
   async request(endpoint, options = {}) {
     const url = `${API_BASE_URL}${endpoint}`;
     const config = {
+      method: options.method || 'GET',
       headers: {
         'Content-Type': 'application/json',
         ...options.headers,
       },
       ...options,
     };
+
+    // Ensure body is included for POST/PUT requests
+    if (options.body && (config.method === 'POST' || config.method === 'PUT')) {
+      config.body = options.body;
+      // Ensure Content-Type is set to application/json for POST/PUT requests with body
+      config.headers['Content-Type'] = 'application/json';
+    }
 
     try {
       const response = await fetch(url, config);
@@ -234,8 +243,10 @@ export const api = {
 
   // Get auth headers from auth store
   getAuthHeaders() {
-    // This will be set by the auth store
-    return {};
+    // Get token from Zustand store
+    const { token } = useAuth.getState();
+    // console.log('Token being sent:', token);
+    return token ? { Authorization: `Bearer ${token}` } : {};
   },
 };
 

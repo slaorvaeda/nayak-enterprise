@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useRef, useState } from "react"
 import AOS from "aos"
 import "aos/dist/aos.css"
 
@@ -28,10 +28,40 @@ export default function Home() {
     })
   }, [])
 
+  const [tilt, setTilt] = useState({ x: 0, y: 0 });
+  const imgRef = useRef(null);
+  const [isPointer, setIsPointer] = useState(true);
+
+  useEffect(() => {
+    // Detect if device supports pointer (not touch)
+    if (window.matchMedia('(pointer: fine)').matches) {
+      setIsPointer(true);
+    } else {
+      setIsPointer(false);
+    }
+  }, []);
+
+  const handleMouseMove = (e) => {
+    if (!isPointer) return;
+    const rect = imgRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    const rotateX = ((y - centerY) / centerY) * 10; // max 10deg
+    const rotateY = ((x - centerX) / centerX) * 10;
+    setTilt({ x: rotateX, y: rotateY });
+  };
+
+  const handleMouseLeave = () => {
+    if (!isPointer) return;
+    setTilt({ x: 0, y: 0 });
+  };
+
   return (
     <div className="flex flex-col min-h-screen">
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-r from-slate-900 to-slate-700 text-white py-20" data-aos="fade-in">
+      <section className="relative bg-gradient-to-r from-slate-900 to-slate-700 text-white pt-10  md:pt-0" data-aos="fade-in">
         <div className="container mx-auto px-4">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div data-aos="fade-up">
@@ -56,13 +86,28 @@ export default function Home() {
               </div>
             </div>
             <div className="relative" data-aos="zoom-in">
-              <Image
-                src="/placeholder.svg?height=400&width=600"
-                alt="Warehouse and distribution"
-                width={600}
-                height={400}
-                className="rounded-lg shadow-2xl"
-              />
+              <div
+                ref={imgRef}
+                className="w-full max-w-[600px] h-auto mx-auto"
+                style={{
+                  perspective: "1000px",
+                  display: "inline-block",
+                }}
+                onMouseMove={handleMouseMove}
+                onMouseLeave={handleMouseLeave}
+              >
+                <Image
+                  src="/hero.png?height=400&width=600"
+                  alt="Warehouse and distribution"
+                  width={600}
+                  height={400}
+                  className="md:relative md:top-20 rounded-lg object-contain drop-shadow-black drop-shadow-2xl w-full h-auto"
+                  style={isPointer ? {
+                    transform: `rotateX(${-tilt.x}deg) rotateY(${tilt.y}deg)`,
+                    transition: tilt.x === 0 && tilt.y === 0 ? "transform 0.4s cubic-bezier(.03,.98,.52,.99)" : "none",
+                  } : {}}
+                />
+              </div>
             </div>
           </div>
         </div>

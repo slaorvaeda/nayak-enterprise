@@ -2,101 +2,85 @@
 
 import { Minus, Plus, ShoppingCart, Star, Truck } from "lucide-react"
 import Image from "next/image"
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useDispatch, useSelector } from "react-redux"
+import { addItemToCart } from "@/store/cartSlice"
+import { api } from "@/lib/utils"
+import { useAuth } from '@/lib/auth';
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useCart } from "@/hooks/use-cart"
 import { useToast } from "@/hooks/use-toast"
+import React from "react"
 
-// Mock product data - in real app, this would come from API based on params.id
-const product = {
-  id: 1,
-  name: "Premium Rice (25kg)",
-  category: "Food & Grains",
-  price: 1250,
-  originalPrice: 1400,
-  images: [
-    "/placeholder.svg?height=500&width=500",
-    "/placeholder.svg?height=500&width=500",
-    "/placeholder.svg?height=500&width=500",
-  ],
-  rating: 4.5,
-  reviews: 128,
-  inStock: true,
-  minOrder: 10,
-  maxOrder: 500,
-  description:
-    "High-quality basmati rice, perfect for retail stores. This premium grade rice is carefully selected and processed to ensure consistent quality and taste.",
-  specifications: {
-    Weight: "25kg per bag",
-    Type: "Basmati Rice",
-    Grade: "Premium",
-    "Shelf Life": "12 months",
-    Storage: "Cool, dry place",
-    Origin: "India",
-  },
-  features: [
-    "Premium quality basmati rice",
-    "Long grain variety",
-    "Aromatic and flavorful",
-    "Perfect for retail packaging",
-    "Bulk wholesale pricing",
-    "Quality assured",
-  ],
-}
-
-export default function ProductPage() {
-  const [quantity, setQuantity] = useState(product.minOrder)
+export default function ProductPage({ params }) {
+  const [product, setProduct] = useState(null)
+  const [quantity, setQuantity] = useState(1)
   const [selectedImage, setSelectedImage] = useState(0)
-  const { addItem } = useCart()
+  const [isLoading, setIsLoading] = useState(true)
+  const dispatch = useDispatch()
   const { toast } = useToast()
+  const items = useSelector((state) => state.cart.items);
+  const { isAuthenticated } = useAuth();
+
+  // Await params using React.use
+  const unwrappedParams = React.use(params)
+
+  useEffect(() => {
+    const fetchProduct = async () => {
+      try {
+        setIsLoading(true)
+        const response = await api.products.getById(unwrappedParams.id)
+        const fetchedProduct = response.data.product
+        setProduct(fetchedProduct)
+        setQuantity(fetchedProduct.minOrderQuantity)
+      } catch (error) {
+        console.error("Failed to fetch product:", error)
+        // Handle not found or other errors
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    if (unwrappedParams.id) {
+      fetchProduct()
+    }
+  }, [unwrappedParams.id])
+
+  if (isLoading) {
+    return <div>Loading...</div>
+  }
+
+  if (!product) {
+    return <div>Product not found</div>
+  }
 
   const totalPrice = quantity * product.price
   const savings = quantity * (product.originalPrice - product.price)
 
   const incrementQuantity = () => {
-    if (quantity < product.maxOrder) {
+    if (quantity < product.maxOrderQuantity) {
       setQuantity(quantity + 1)
     }
   }
 
   const decrementQuantity = () => {
-    if (quantity > product.minOrder) {
+    if (quantity > product.minOrderQuantity) {
       setQuantity(quantity - 1)
     }
   }
 
-  const handleAddToCart = () => {
-    if (!product.inStock) return
-
-    // Add the specified quantity to cart
-    for (let i = 0; i < Math.ceil(quantity / product.minOrder); i++) {
-      const remainingQty = quantity - i * product.minOrder
-      const qtyToAdd = Math.min(remainingQty, product.minOrder)
-
-      if (qtyToAdd > 0) {
-        addItem({
-          id: product.id,
-          name: product.name,
-          price: product.price,
-          originalPrice: product.originalPrice,
-          image: product.images[0],
-          minOrder: product.minOrder,
-          maxOrder: product.maxOrder,
-          inStock: product.inStock,
-        })
-      }
-    }
-
+  const handleAddToCart = async () => {
+    if (!isAuthenticated || product.stockQuantity === 0) return;
+    await dispatch(addItemToCart({ productId: product._id, quantity }));
     toast({
       title: "Added to cart",
       description: `${quantity} units of ${product.name} added to your cart.`,
-    })
-  }
+    });
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -105,7 +89,7 @@ export default function ProductPage() {
         <div className="space-y-4">
           <div className="aspect-square relative">
             <Image
-              src={product.images[selectedImage] || "/placeholder.svg"}
+              src={(product.images[selectedImage]?.url || "/placeholder.svg").trimEnd()}
               alt={product.name}
               fill
               className="object-cover rounded-lg"
@@ -121,7 +105,7 @@ export default function ProductPage() {
                 }`}
               >
                 <Image
-                  src={image || "/placeholder.svg"}
+                  src={(image.url || "/placeholder.svg").trimEnd()}
                   alt={`${product.name} ${index + 1}`}
                   fill
                   className="object-cover"
@@ -141,11 +125,11 @@ export default function ProductPage() {
             <div className="flex items-center gap-2 mb-4">
               <div className="flex items-center gap-1">
                 <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                <span className="font-medium">{product.rating}</span>
+                <span className="font-medium">{product.rating.average}</span>
               </div>
-              <span className="text-muted-foreground">({product.reviews} reviews)</span>
-              <Badge variant={product.inStock ? "default" : "destructive"}>
-                {product.inStock ? "In Stock" : "Out of Stock"}
+              <span className="text-muted-foreground">({product.rating.count} reviews)</span>
+              <Badge variant={product.stockQuantity > 0 ? "default" : "destructive"}>
+                {product.stockQuantity > 0 ? "In Stock" : "Out of Stock"}
               </Badge>
             </div>
           </div>
@@ -160,7 +144,7 @@ export default function ProductPage() {
                 <Badge className="bg-green-600">Save ₹{product.originalPrice - product.price}</Badge>
               )}
             </div>
-            <p className="text-sm text-muted-foreground">Price per unit • Minimum order: {product.minOrder} units</p>
+            <p className="text-sm text-muted-foreground">Price per unit • Minimum order: {product.minOrderQuantity} units</p>
           </div>
 
           <Separator />
@@ -169,14 +153,14 @@ export default function ProductPage() {
           <div className="space-y-4">
             <div>
               <label className="text-sm font-medium mb-2 block">
-                Quantity (Min: {product.minOrder}, Max: {product.maxOrder})
+                Quantity (Min: {product.minOrderQuantity}, Max: {product.maxOrderQuantity})
               </label>
               <div className="flex items-center gap-3">
                 <Button
                   variant="outline"
                   size="icon"
                   onClick={decrementQuantity}
-                  disabled={quantity <= product.minOrder}
+                  disabled={quantity <= product.minOrderQuantity}
                 >
                   <Minus className="h-4 w-4" />
                 </Button>
@@ -185,7 +169,7 @@ export default function ProductPage() {
                   variant="outline"
                   size="icon"
                   onClick={incrementQuantity}
-                  disabled={quantity >= product.maxOrder}
+                  disabled={quantity >= product.maxOrderQuantity}
                 >
                   <Plus className="h-4 w-4" />
                 </Button>
@@ -212,9 +196,9 @@ export default function ProductPage() {
 
           {/* Action Buttons */}
           <div className="space-y-3">
-            <Button size="lg" className="w-full" disabled={!product.inStock} onClick={handleAddToCart}>
+            <Button size="lg" className="w-full" disabled={!isAuthenticated || product.stockQuantity === 0} onClick={handleAddToCart}>
               <ShoppingCart className="mr-2 h-4 w-4" />
-              Add to Cart
+              {isAuthenticated ? 'Add to Cart' : 'Login to Add to Cart'}
             </Button>
             <Button size="lg" variant="outline" className="w-full bg-transparent">
               Request Quote
@@ -249,11 +233,11 @@ export default function ProductPage() {
               <p className="mb-4">{product.description}</p>
               <h4 className="font-medium mb-2">Key Features:</h4>
               <ul className="list-disc list-inside space-y-1">
-                {product.features.map((feature, index) => (
+                {product.features?.map((feature, index) => (
                   <li key={index} className="text-sm">
                     {feature}
                   </li>
-                ))}
+                )) || <li>No features listed.</li>}
               </ul>
             </CardContent>
           </Card>
@@ -265,10 +249,10 @@ export default function ProductPage() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {Object.entries(product.specifications).map(([key, value]) => (
-                  <div key={key} className="flex justify-between py-2 border-b">
-                    <span className="font-medium">{key}:</span>
-                    <span>{value}</span>
+                {product.specifications?.map((spec) => (
+                  <div key={spec.name} className="flex justify-between py-2 border-b">
+                    <span className="font-medium">{spec.name}:</span>
+                    <span>{spec.value}</span>
                   </div>
                 ))}
               </div>
@@ -279,7 +263,7 @@ export default function ProductPage() {
           <Card>
             <CardHeader>
               <CardTitle>Customer Reviews</CardTitle>
-              <CardDescription>Based on {product.reviews} reviews</CardDescription>
+              <CardDescription>Based on {product.rating.count} reviews</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -289,12 +273,12 @@ export default function ProductPage() {
                       <Star
                         key={star}
                         className={`h-4 w-4 ${
-                          star <= Math.floor(product.rating) ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
+                          star <= Math.floor(product.rating.average) ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
                         }`}
                       />
                     ))}
                   </div>
-                  <span className="font-medium">{product.rating} out of 5</span>
+                  <span className="font-medium">{product.rating.average} out of 5</span>
                 </div>
                 <p className="text-muted-foreground">Reviews from verified wholesale customers will appear here.</p>
               </div>

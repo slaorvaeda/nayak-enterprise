@@ -158,7 +158,10 @@ router.put('/update/:productId', protect, async (req, res) => {
     }
 
     // Check if item exists in cart
-    const cartItem = cart.items.find(item => item.product.toString() === productId);
+    const cartItem = cart.items.find(item => {
+      const itemProductId = item.product._id ? item.product._id.toString() : item.product.toString();
+      return itemProductId === productId;
+    });
     if (!cartItem) {
       return res.status(404).json({
         success: false,

@@ -141,6 +141,28 @@ router.get('/bestsellers', async (req, res) => {
   }
 });
 
+// @desc    Get product categories
+// @route   GET /api/products/categories
+// @access  Public
+router.get('/categories', async (req, res) => {
+  try {
+    const categories = await Product.distinct('category');
+    
+    res.json({
+      success: true,
+      data: {
+        categories
+      }
+    });
+  } catch (error) {
+    console.error('Get categories error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch categories'
+    });
+  }
+});
+
 // @desc    Get product by ID
 // @route   GET /api/products/:id
 // @access  Public
@@ -209,28 +231,6 @@ router.get('/sku/:sku', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch product'
-    });
-  }
-});
-
-// @desc    Get product categories
-// @route   GET /api/products/categories
-// @access  Public
-router.get('/categories', async (req, res) => {
-  try {
-    const categories = await Product.distinct('category');
-    
-    res.json({
-      success: true,
-      data: {
-        categories
-      }
-    });
-  } catch (error) {
-    console.error('Get categories error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch categories'
     });
   }
 });

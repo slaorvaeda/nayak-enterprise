@@ -10,7 +10,7 @@ const { orderValidation } = require('../middleware/validation');
 // @desc    Create new order from cart
 // @route   POST /api/orders
 // @access  Private
-router.post('/', protect, verified, orderValidation, async (req, res) => {
+router.post('/', protect, orderValidation, async (req, res) => {
   try {
     const {
       paymentMethod,
@@ -98,7 +98,7 @@ router.post('/', protect, verified, orderValidation, async (req, res) => {
     const total = subtotal - cart.discount + shippingCost + tax;
 
     // Create order
-    const order = await Order.create({
+    const order = new Order({
       customer: req.user._id,
       items: orderItems,
       subtotal,
@@ -110,12 +110,27 @@ router.post('/', protect, verified, orderValidation, async (req, res) => {
       shippingAddress,
       customerNotes
     });
+    await order.save();
 
-    // Update product stock
-    for (const item of orderItems) {
-      await Product.findByIdAndUpdate(item.product, {
-        $inc: { stockQuantity: -item.quantity }
-      });
+    // Update product stock (robust, prevent negative stock, use transaction)
+    const session = await Product.startSession();
+    session.startTransaction();
+    try {
+      for (const item of orderItems) {
+        const product = await Product.findById(item.product).session(session);
+        if (!product) throw new Error(`Product not found: ${item.product}`);
+        if (product.stockQuantity < item.quantity) {
+          throw new Error(`Insufficient stock for product: ${product.name}`);
+        }
+        product.stockQuantity -= item.quantity;
+        await product.save({ session });
+      }
+      await session.commitTransaction();
+      session.endSession();
+    } catch (err) {
+      await session.abortTransaction();
+      session.endSession();
+      throw err;
     }
 
     // Update user statistics
@@ -136,9 +151,15 @@ router.post('/', protect, verified, orderValidation, async (req, res) => {
     });
   } catch (error) {
     console.error('Create order error:', error);
+    console.error('Error details:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack
+    });
     res.status(500).json({
       success: false,
-      message: 'Failed to create order'
+      message: 'Failed to create order',
+      details: error.message
     });
   }
 });

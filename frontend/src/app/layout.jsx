@@ -6,6 +6,7 @@ import ClientNavbar from "@/components/ClientNavbar";
 import Footer from "@/components/Footer";
 import ThemeProvider from "@/components/ThemeProvider";
 import Toaster from "@/components/Toaster";
+import StoreProvider from "@/store/StoreProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -20,15 +21,17 @@ export const metadata = {
 export default function RootLayout({ children }) {
 
   return (
-    <html lang="en" suppressHydrationWarning >
-      <body className={`${inter.className}`}>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          {/* Hide Navbar on /admin routes using ClientNavbar */}
-          <ClientNavbar />
-          <main className="min-h-screen">{children}</main>
-          <Footer />
-          <Toaster />
-        </ThemeProvider>
+    <html lang="en" suppressHydrationWarning> 
+      <body>
+        <StoreProvider>
+          <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+            {/* Hide Navbar on /admin routes using ClientNavbar */}
+            <ClientNavbar />
+            <main className="min-h-screen">{children}</main>
+            <Footer />
+            <Toaster />
+          </ThemeProvider>
+        </StoreProvider>
       </body>
     </html>
   );

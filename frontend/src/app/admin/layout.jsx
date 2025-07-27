@@ -20,12 +20,12 @@ export default function AdminLayout({ children }) {
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Redirect if already authenticated as admin
+  // Redirect if already authenticated as admin and on the login page
   useEffect(() => {
-    if (isAuthenticated && user?.role === "admin") {
+    if (isLoginPage && isAuthenticated && user?.role === "admin") {
       router.replace("/admin");
     }
-  }, [isAuthenticated, user, router]);
+  }, [isLoginPage, isAuthenticated, user, router]);
 
   // Close sidebar on route change
   useEffect(() => {

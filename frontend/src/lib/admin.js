@@ -1,6 +1,6 @@
 "use client"
 
-import { loginAdmin } from "@/services/adminService"
+import { getAllUsers, loginAdmin, getProducts, addProduct, updateProduct, deleteProduct } from "@/services/adminService"
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
 
@@ -20,6 +20,10 @@ export const useAdmin = create(
               token: data.token,
               isAuthenticated: true,
             });
+            // Store token in localStorage for axios interceptor
+            if (typeof window !== "undefined") {
+              localStorage.setItem("admin_token", data.token);
+            }
           } else {
             set({ user: null, token: null, isAuthenticated: false });
           }
@@ -38,6 +42,52 @@ export const useAdmin = create(
           localStorage.removeItem("admin_authenticated");
           // Optionally clear the persisted Zustand state
           localStorage.removeItem("nayak-admin-store");
+        }
+      },
+      getUsers: async () => {
+        try {
+          const data = await getAllUsers();
+          // console.log(data);
+          return data;
+        } catch (error) {
+          console.log(`Error in getUsers: ${error}`);
+          throw error;
+        } 
+      },
+      getProducts: async () => {
+        try {
+          const data = await getProducts();
+          return data;
+        } catch (error) {
+          console.log(`Error in getProducts: ${error}`);
+          throw error;
+        } 
+      },
+      addProduct: async (productData) => {
+        try {
+          const data = await addProduct(productData);
+          return data;
+        } catch (error) {
+          console.log(`Error in addProduct: ${error}`);
+          throw error;
+        }
+      },
+      updateProduct: async (id, productData) => {
+        try {
+          const data = await updateProduct(id, productData);
+          return data;
+        } catch (error) {
+          console.log(`Error in updateProduct: ${error}`);
+          throw error;
+        }
+      },
+      deleteProduct: async (id) => {
+        try {
+          const data = await deleteProduct(id);
+          return data;
+        } catch (error) {
+          console.log(`Error in deleteProduct: ${error}`);
+          throw error;
         }
       },
     }),

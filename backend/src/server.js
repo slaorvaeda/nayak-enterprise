@@ -5,6 +5,9 @@ const cors = require('cors');
 const authRouter = require('./routes/auth');
 const productsRouter = require('./routes/products');
 const adminRouter = require('./routes/admin');
+const cartRouter = require('./routes/cart');
+const ordersRouter = require('./routes/orders');
+
 dotenv.config();
 
 const app = express();
@@ -25,6 +28,8 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/auth', authRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/products', productsRouter);
+app.use('/api/cart', cartRouter);
+app.use('/api/orders', ordersRouter);
 
 connectDb();
 

@@ -4,7 +4,7 @@ const orderSchema = new mongoose.Schema({
   // Order Information
   orderNumber: {
     type: String,
-    required: true,
+    required: false, // allow pre-save hook to set this
     unique: true
   },
   customer: {
@@ -166,10 +166,11 @@ orderSchema.pre('save', async function(next) {
 
 // Virtual for order summary
 orderSchema.virtual('orderSummary').get(function() {
+  const items = Array.isArray(this.items) ? this.items : [];
   return {
-    totalItems: this.items.reduce((sum, item) => sum + item.quantity, 0),
-    totalProducts: this.items.length,
-    savings: this.items.reduce((sum, item) => sum + (item.discount || 0), 0)
+    totalItems: items.reduce((sum, item) => sum + (item.quantity || 0), 0),
+    totalProducts: items.length,
+    savings: items.reduce((sum, item) => sum + (item.discount || 0), 0)
   };
 });
 

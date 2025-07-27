@@ -128,18 +128,22 @@ export function ProductSlider() {
 							className="min-w-[260px] max-w-xs flex-shrink-0 shadow-md hover:shadow-lg transition-shadow duration-200"
 							style={{ scrollSnapAlign: "start" }}
 						>
-							<CardHeader className="flex items-center justify-center">
-								<Image
-									src={product.image || "/placeholder.jpg"}
-									alt={product.name}
-									width={160}
-									height={120}
-									className="rounded-md object-cover"
-								/>
-								<CardTitle className="text-lg mt-2 text-center">{product.name}</CardTitle>
+							<CardHeader className="flex flex-col items-center justify-center p-4 pb-2">
+								<div className="w-full flex items-center justify-center aspect-[4/3] bg-slate-100 rounded-md overflow-hidden mb-2">
+									<Image
+										src={product.primaryImage || "/placeholder.jpg"}
+										alt={product.name}
+										width={220}
+										height={165}
+										className="object-contain w-full h-full max-h-[165px] max-w-[220px]"
+									/>
+								</div>
+								<CardTitle className="text-lg font-semibold text-center mt-1 mb-0.5 leading-tight line-clamp-2">
+									{product.name}
+								</CardTitle>
 							</CardHeader>
-							<CardContent>
-								<CardDescription className="text-center text-slate-600">
+							<CardContent className="pt-0 pb-4 px-4">
+								<CardDescription className="text-center text-slate-500 text-sm line-clamp-2 min-h-[2.5em]">
 									{product.description}
 								</CardDescription>
 							</CardContent>

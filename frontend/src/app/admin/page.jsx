@@ -1,5 +1,8 @@
 "use client"
 
+import { useEffect, useState } from "react"
+import axios from "@/utils/axios"
+
 import {
   Package,
   ShoppingCart,
@@ -18,118 +21,82 @@ import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Progress } from "@/components/ui/progress"
 
-// Mock data
-const stats = [
-  {
-    title: "Total Revenue",
-    value: "₹12,45,000",
-    change: "+12.5%",
-    trend: "up",
-    icon: DollarSign,
-    description: "Monthly revenue",
-  },
-  {
-    title: "Total Orders",
-    value: "1,234",
-    change: "+8.2%",
-    trend: "up",
-    icon: ShoppingCart,
-    description: "Orders this month",
-  },
-  {
-    title: "Total Products",
-    value: "856",
-    change: "+2.1%",
-    trend: "up",
-    icon: Package,
-    description: "Active products",
-  },
-  {
-    title: "Active Customers",
-    value: "2,456",
-    change: "-1.2%",
-    trend: "down",
-    icon: Users,
-    description: "Registered customers",
-  },
-]
-
-const recentOrders = [
-  {
-    id: "ORD-001",
-    customer: "Sharma General Store",
-    amount: "₹15,750",
-    status: "Completed",
-    date: "2024-01-15",
-    items: 12,
-  },
-  {
-    id: "ORD-002",
-    customer: "Patel Retail Shop",
-    amount: "₹9,200",
-    status: "Processing",
-    date: "2024-01-15",
-    items: 8,
-  },
-  {
-    id: "ORD-003",
-    customer: "Kumar Store",
-    amount: "₹22,100",
-    status: "Shipped",
-    date: "2024-01-14",
-    items: 15,
-  },
-  {
-    id: "ORD-004",
-    customer: "Gupta Enterprises",
-    amount: "₹5,400",
-    status: "Cancelled",
-    date: "2024-01-14",
-    items: 6,
-  },
-]
-
-const topProducts = [
-  {
-    name: "Premium Rice (25kg)",
-    sales: 245,
-    revenue: "₹3,06,250",
-    trend: "up",
-    progress: 85,
-  },
-  {
-    name: "Cooking Oil (15L)",
-    sales: 189,
-    revenue: "₹3,96,900",
-    trend: "up",
-    progress: 92,
-  },
-  {
-    name: "Detergent Powder (5kg)",
-    sales: 156,
-    revenue: "₹70,200",
-    trend: "down",
-    progress: 65,
-  },
-  {
-    name: "Tea Packets (250g x 20)",
-    sales: 134,
-    revenue: "₹2,41,200",
-    trend: "up",
-    progress: 78,
-  },
-]
-
-const salesData = [
-  { month: "Jan", sales: 45000 },
-  { month: "Feb", sales: 52000 },
-  { month: "Mar", sales: 48000 },
-  { month: "Apr", sales: 61000 },
-  { month: "May", sales: 55000 },
-  { month: "Jun", sales: 67000 },
-]
-
 export default function AdminDashboard() {
+  const [dashboard, setDashboard] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    async function fetchDashboard() {
+      setLoading(true)
+      setError(null)
+      try {
+        const res = await axios.get("/admin/dashboard")
+        setDashboard(res.data)
+      } catch (err) {
+        setError("Failed to load dashboard data")
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchDashboard()
+  }, [])
+
+  if (loading) {
+    return <div className="p-8 text-center text-lg">Loading dashboard...</div>
+  }
+  if (error) {
+    return <div className="p-8 text-center text-red-500">{error}</div>
+  }
+  if (!dashboard) {
+    return null
+  }
+
+  // Extract data
+  const stats = [
+    {
+      title: "Total Revenue",
+      value: `₹${dashboard.data.overview?.totalRevenue?.toLocaleString() ?? "0"}`,
+      change: "+0%",
+      trend: "up",
+      icon: DollarSign,
+      description: "All-time revenue",
+    },
+    {
+      title: "Total Orders",
+      value: dashboard.data.overview?.totalOrders?.toLocaleString() ?? "0",
+      change: "+0%",
+      trend: "up",
+      icon: ShoppingCart,
+      description: "All-time orders",
+    },
+    {
+      title: "Total Products",
+      value: dashboard.data.overview?.totalProducts?.toLocaleString() ?? "0",
+      change: "+0%",
+      trend: "up",
+      icon: Package,
+      description: "Active products",
+    },
+    {
+      title: "Active Customers",
+      value: dashboard.data.overview?.totalUsers?.toLocaleString() ?? "0",
+      change: "+0%",
+      trend: "up",
+      icon: Users,
+      description: "Registered customers",
+    },
+  ]
+
+  const recentOrders = dashboard.data.recentOrders || []
+  const monthlyRevenue = dashboard.data.monthlyRevenue || []
+
+  // Prepare sales data for chart
+  const salesData = monthlyRevenue.map((item) => ({
+    month: `${item._id.month}/${item._id.year}`,
+    revenue: item.revenue,
+  }))
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -197,33 +164,33 @@ export default function AdminDashboard() {
               </TableHeader>
               <TableBody>
                 {recentOrders.map((order) => (
-                  <TableRow key={order.id}>
+                  <TableRow key={order.orderNumber || order._id}>
                     <TableCell>
                       <div>
-                        <p className="font-medium">{order.id}</p>
-                        <p className="text-xs text-muted-foreground">{order.items} items</p>
+                        <p className="font-medium">{order.orderNumber || order._id}</p>
+                        <p className="text-xs text-muted-foreground">{order.items?.length ?? 0} items</p>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div>
-                        <p className="font-medium">{order.customer}</p>
-                        <p className="text-xs text-muted-foreground">{order.date}</p>
+                        <p className="font-medium">{order.customer?.businessName}</p>
+                        <p className="text-xs text-muted-foreground">{order.orderDate ? new Date(order.orderDate).toLocaleDateString() : "-"}</p>
                       </div>
                     </TableCell>
-                    <TableCell className="font-medium">{order.amount}</TableCell>
+                    <TableCell className="font-medium">₹{(order.total ?? 0).toLocaleString()}</TableCell>
                     <TableCell>
                       <Badge
                         variant={
-                          order.status === "Completed"
+                          order.status === "delivered"
                             ? "default"
-                            : order.status === "Processing"
+                            : order.status === "processing"
                               ? "secondary"
-                              : order.status === "Shipped"
+                              : order.status === "shipped"
                                 ? "outline"
                                 : "destructive"
                         }
                       >
-                        {order.status}
+                        {order.status?.charAt(0).toUpperCase() + order.status?.slice(1)}
                       </Badge>
                     </TableCell>
                   </TableRow>
@@ -232,97 +199,28 @@ export default function AdminDashboard() {
             </Table>
           </CardContent>
         </Card>
-
-        {/* Top Products */}
+        {/* Sales Analyzer (Monthly Revenue Chart) */}
         <Card>
           <CardHeader>
-            <CardTitle>Top Products</CardTitle>
-            <CardDescription>Best performing products this month</CardDescription>
+            <CardTitle>Sales Analyzer</CardTitle>
+            <CardDescription>Monthly revenue for the last 12 months</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {topProducts.map((product, index) => (
-                <div key={product.name} className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3 flex-1">
-                    <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center text-sm font-medium">
-                      {index + 1}
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium">{product.name}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <p className="text-sm text-muted-foreground">{product.sales} units sold</p>
-                        <Progress value={product.progress} className="w-16 h-2" />
-                      </div>
-                    </div>
+            <div className="space-y-2">
+              {salesData.length === 0 && <div className="text-muted-foreground">No sales data available.</div>}
+              {salesData.map((data) => (
+                <div key={data.month} className="flex items-center justify-between">
+                  <div className="w-20 text-sm font-medium">{data.month}</div>
+                  <div className="flex-1 mx-4">
+                    <Progress value={Math.min((data.revenue / Math.max(...salesData.map(d => d.revenue), 1)) * 100, 100)} className="h-3" />
                   </div>
-                  <div className="text-right">
-                    <p className="font-medium">{product.revenue}</p>
-                    <div className="flex items-center text-xs">
-                      {product.trend === "up" ? (
-                        <TrendingUp className="h-3 w-3 text-green-500 mr-1" />
-                      ) : (
-                        <ArrowDownRight className="h-3 w-3 text-red-500 mr-1" />
-                      )}
-                      <span className={product.trend === "up" ? "text-green-500" : "text-red-500"}>
-                        {product.trend === "up" ? "↑" : "↓"}
-                      </span>
-                    </div>
-                  </div>
+                  <div className="w-24 text-sm font-medium text-right">₹{data.revenue.toLocaleString()}</div>
                 </div>
               ))}
             </div>
           </CardContent>
         </Card>
       </div>
-
-      {/* Sales Chart */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Sales Overview</CardTitle>
-          <CardDescription>Monthly sales performance</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {salesData.map((data) => (
-              <div key={data.month} className="flex items-center justify-between">
-                <div className="w-12 text-sm font-medium">{data.month}</div>
-                <div className="flex-1 mx-4">
-                  <Progress value={(data.sales / 70000) * 100} className="h-3" />
-                </div>
-                <div className="w-20 text-sm font-medium text-right">₹{data.sales.toLocaleString()}</div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-          <CardDescription>Common tasks and shortcuts</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Button variant="outline" className="h-20 flex-col bg-transparent hover:bg-primary/5">
-              <Package className="h-6 w-6 mb-2" />
-              Add Product
-            </Button>
-            <Button variant="outline" className="h-20 flex-col bg-transparent hover:bg-primary/5">
-              <Users className="h-6 w-6 mb-2" />
-              Add Customer
-            </Button>
-            <Button variant="outline" className="h-20 flex-col bg-transparent hover:bg-primary/5">
-              <ShoppingCart className="h-6 w-6 mb-2" />
-              View Orders
-            </Button>
-            <Button variant="outline" className="h-20 flex-col bg-transparent hover:bg-primary/5">
-              <TrendingUp className="h-6 w-6 mb-2" />
-              View Reports
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   )
 }

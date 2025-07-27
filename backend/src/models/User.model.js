@@ -158,6 +158,7 @@ userSchema.methods.comparePassword = async function (candidatePassword) {
 
 // Virtuals
 userSchema.virtual('formattedPhone').get(function () {
+  if (!this.phone) return "";
   return this.phone.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
 });
 

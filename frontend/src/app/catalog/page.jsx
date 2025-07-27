@@ -3,15 +3,16 @@
 import { Grid, List, Search, Star } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
-import { useState, useEffect } from "react"
-import { useSearchParams } from "next/navigation"
+import { useState, useEffect, useCallback } from "react"
+import { useSearchParams, useRouter, usePathname } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { useCart } from "@/hooks/use-cart"
+import { useDispatch } from 'react-redux';
+import { addItemToCart } from '@/store/cartSlice';
 import { useToast } from "@/hooks/use-toast"
 import { api } from "@/lib/utils"
 
@@ -26,8 +27,19 @@ export default function CatalogPage() {
 	const [error, setError] = useState(null)
 
 	const searchParams = useSearchParams()
-	const { addItem } = useCart()
+	const router = useRouter()
+	const pathname = usePathname()
+	const dispatch = useDispatch();
 	const { toast } = useToast()
+
+	const createQueryString = useCallback(
+		(name, value) => {
+			const params = new URLSearchParams(searchParams.toString())
+			params.set(name, value)
+			return params.toString()
+		},
+		[searchParams]
+	)
 
 	// Load products and categories
 	useEffect(() => {
@@ -54,34 +66,52 @@ export default function CatalogPage() {
 
 	// Handle URL search parameters
 	useEffect(() => {
-		const urlSearch = searchParams.get("search")
-		const urlCategory = searchParams.get("category")
+		const urlSearch = searchParams.get("search") || ""
+		const urlCategory = searchParams.get("category") || "All"
+		const urlSort = searchParams.get("sort") || "name"
 
-		if (urlSearch) {
-			setSearchQuery(urlSearch)
-		}
-		if (urlCategory) {
-			setSelectedCategory(urlCategory)
-		}
+		setSearchQuery(urlSearch)
+		setSelectedCategory(urlCategory)
+		setSortBy(urlSort)
 	}, [searchParams])
 
 	const handleAddToCart = async (product) => {
-		if (!product.inStock) return
-
-		try {
-			await addItem(product)
-			toast({
-				title: "Added to cart",
-				description: `${product.name} has been added to your cart.`,
-			})
-		} catch (error) {
+		if (product.stockQuantity === 0) return;
+		const productId = product._id;
+		if (!productId) {
+			console.error('No product ID found:', product);
 			toast({
 				title: "Error",
-				description: "Failed to add item to cart. Please try again.",
-				variant: "destructive",
-			})
+				description: "Could not add product to cart. Product ID missing.",
+				variant: "destructive"
+			});
+			return;
 		}
+		const payload = { productId, quantity: product.minOrderQuantity || 1 };
+		console.log('Sending to addItemToCart:', payload);
+		await dispatch(addItemToCart(payload));
+		toast({
+			title: "Added to cart",
+			description: `${product.name} has been added to your cart.`,
+		});
+	};
+
+	const handleCategoryChange = (category) => {
+		setSelectedCategory(category)
+		router.push(pathname + '?' + createQueryString('category', category))
 	}
+
+	const handleSortChange = (sort) => {
+		setSortBy(sort)
+		router.push(pathname + '?' + createQueryString('sort', sort))
+	}
+	
+	const handleSearchChange = (e) => {
+		const query = e.target.value
+		setSearchQuery(query)
+		router.push(pathname + '?' + createQueryString('search', query))
+	}
+
 
 	const filteredProducts = products.filter((product) => {
 		const matchesCategory = selectedCategory === "All" || product.category === selectedCategory
@@ -145,13 +175,13 @@ export default function CatalogPage() {
 						<Input
 							placeholder="Search products..."
 							value={searchQuery}
-							onChange={(e) => setSearchQuery(e.target.value)}
+							onChange={handleSearchChange}
 							className="pl-10"
 						/>
 					</div>
 				</div>
 				<div className="flex gap-4">
-					<Select value={selectedCategory} onValueChange={setSelectedCategory}>
+					<Select value={selectedCategory} onValueChange={handleCategoryChange}>
 						<SelectTrigger className="w-[180px]">
 							<SelectValue placeholder="Category" />
 						</SelectTrigger>
@@ -163,7 +193,7 @@ export default function CatalogPage() {
 							))}
 						</SelectContent>
 					</Select>
-					<Select value={sortBy} onValueChange={setSortBy}>
+					<Select value={sortBy} onValueChange={handleSortChange}>
 						<SelectTrigger className="w-[180px]">
 							<SelectValue placeholder="Sort by" />
 						</SelectTrigger>
@@ -206,7 +236,7 @@ export default function CatalogPage() {
 						<div className={viewMode === "list" ? "w-48 flex-shrink-0" : ""}>
 							<div className="relative">
 								<Image
-									src={product.image || "/placeholder.svg"}
+									src={(product.primaryImage || "/placeholder.svg").trimEnd()}
 									alt={product.name}
 									width={300}
 									height={300}
@@ -214,7 +244,7 @@ export default function CatalogPage() {
 										viewMode === "list" ? "h-48 w-48" : "h-64 w-full"
 									} rounded-t-lg`}
 								/>
-								{!product.inStock && (
+								{product.stockQuantity === 0 && (
 									<Badge variant="destructive" className="absolute top-2 right-2">
 										Out of Stock
 									</Badge>
@@ -235,9 +265,9 @@ export default function CatalogPage() {
 									</div>
 									<div className="flex items-center gap-1">
 										<Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-										<span className="text-sm">{product.rating}</span>
+										<span className="text-sm">{product.rating.average}</span>
 										<span className="text-xs text-muted-foreground">
-											({product.reviews})
+											({product.rating.count})
 										</span>
 									</div>
 								</div>
@@ -255,18 +285,18 @@ export default function CatalogPage() {
 									)}
 								</div>
 								<p className="text-xs text-muted-foreground">
-									Minimum Order: {product.minOrder} units
+									Minimum Order: {product.minOrderQuantity} units
 								</p>
 							</CardContent>
 							<CardFooter className="flex gap-2">
-								<Button className="flex-1" disabled={!product.inStock} asChild>
+								<Button className="flex-1" disabled={product.stockQuantity === 0} asChild>
 									<Link href={`/product/${product.id}`}>
-										{product.inStock ? "View Details" : "Out of Stock"}
+										{product.stockQuantity > 0 ? "View Details" : "Out of Stock"}
 									</Link>
 								</Button>
 								<Button
 									variant="outline"
-									disabled={!product.inStock}
+									disabled={product.stockQuantity === 0}
 									onClick={() => handleAddToCart(product)}
 								>
 									Add to Cart
