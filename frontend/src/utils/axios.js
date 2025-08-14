@@ -8,10 +8,12 @@ const instance = axios.create({
   },
 });
 
-// Automatically attach token if available
+// attach token if available
+
 instance.interceptors.request.use((config) => {
   if (typeof window !== "undefined") {
     // Try to get token from localStorage first (for backward compatibility)
+
     let token = localStorage.getItem("token");
     let adminToken = localStorage.getItem("admin_token");
 

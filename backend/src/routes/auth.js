@@ -4,7 +4,7 @@ const User = require('../models/User.model');
 const { protect, generateToken } = require('../middleware/auth');
 const bcrypt = require('bcryptjs');
 const { registerValidation, loginValidation } = require('../middleware/validation');
-const { registerUser, loginUser } = require('../controllers/authContoller');
+const { registerUser, loginUser, forgotPassword, resetPassword } = require('../controllers/authContoller');
 const { getUserProfile, updateUserProfile } = require('../controllers/UserController');
 
 // Register new user
@@ -12,6 +12,12 @@ router.post('/register',registerValidation, registerUser);
 
 // Login user
 router.post('/login', loginValidation, loginUser);
+
+// Forgot password
+router.post('/forgot-password', forgotPassword);
+
+// Reset password
+router.post('/reset-password/:resetToken', resetPassword);
 
 //Get current user profile
 router.get('/me', protect, getUserProfile);

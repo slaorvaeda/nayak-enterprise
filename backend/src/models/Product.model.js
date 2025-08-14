@@ -179,7 +179,7 @@ productSchema.index({ brand: 1 });
 productSchema.index({ isActive: 1 });
 productSchema.index({ isFeatured: 1 });
 productSchema.index({ price: 1 });
-productSchema.index({ sku: 1 });
+// sku field already has unique: true which creates an index automatically
 
 // Virtual for discount percentage
 productSchema.virtual('discountPercentage').get(function() {

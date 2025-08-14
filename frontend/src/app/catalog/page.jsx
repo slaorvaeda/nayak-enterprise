@@ -88,7 +88,7 @@ export default function CatalogPage() {
 			return;
 		}
 		const payload = { productId, quantity: product.minOrderQuantity || 1 };
-		console.log('Sending to addItemToCart:', payload);
+		// console.log('Sending to addItemToCart:', payload);
 		await dispatch(addItemToCart(payload));
 		toast({
 			title: "Added to cart",

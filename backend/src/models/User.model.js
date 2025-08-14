@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 
 const userSchema = new mongoose.Schema({
   // Business Information
@@ -99,6 +100,16 @@ const userSchema = new mongoose.Schema({
     default: 'customer'
   },
 
+  // Password Reset
+  resetPasswordToken: {
+    type: String,
+    select: false
+  },
+  resetPasswordExpire: {
+    type: Date,
+    select: false
+  },
+
   // Business Verification
   verificationDocuments: [{
     type: {
@@ -154,6 +165,23 @@ userSchema.pre('save', async function (next) {
 // Password comparison method
 userSchema.methods.comparePassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
+};
+
+// Generate password reset token
+userSchema.methods.getResetPasswordToken = function () {
+  // Generate token
+  const resetToken = crypto.randomBytes(20).toString('hex');
+
+  // Hash token and set to resetPasswordToken field
+  this.resetPasswordToken = crypto
+    .createHash('sha256')
+    .update(resetToken)
+    .digest('hex');
+
+  // Set expire
+  this.resetPasswordExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+  return resetToken;
 };
 
 // Virtuals

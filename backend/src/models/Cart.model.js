@@ -83,7 +83,7 @@ const cartSchema = new mongoose.Schema({
 });
 
 // Indexes for better query performance
-cartSchema.index({ customer: 1 });
+// customer field already has unique: true which creates an index automatically
 cartSchema.index({ expiresAt: 1 });
 
 // Calculate cart totals
